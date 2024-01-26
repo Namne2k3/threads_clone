@@ -1,7 +1,8 @@
 'use server'
 import { revalidatePath } from "next/cache";
-import User from "../models/user.model";
 import { connectToDB } from "../mongoose"
+import User from "../models/user.model";
+import Thread from "../models/thread.model";
 
 interface params {
     userId: string,
@@ -10,6 +11,33 @@ interface params {
     bio: string,
     image: string,
     path: string
+}
+
+export async function fetchUserPosts(userId: string) {
+    try {
+        await connectToDB()
+        // find all threads authored by user with the given userId
+
+        // TODO: populate community
+        const threads = await User.findOne({ id: userId }).populate({
+            path: 'threads',
+            model: Thread,
+            populate: {
+                path: 'children',
+                model: Thread,
+                populate: {
+                    path: 'author',
+                    model: User,
+                    select: 'name image id'
+                }
+            }
+        })
+
+        return threads
+
+    } catch (error: any) {
+        throw new Error(`Failed to fetch User Posts: ${error.message}`)
+    }
 }
 
 export async function fetchUser(userId: String) {

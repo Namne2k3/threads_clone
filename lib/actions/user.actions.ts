@@ -14,6 +14,36 @@ interface params {
     path: string
 }
 
+export async function getActivity(userId: string) {
+    try {
+        await connectToDB()
+
+        // find all threads by the user
+        const userThreads = await Thread.find({ author: userId })
+
+        // Collect all the child thread ids (replies) from the 'children' field
+        const childThreadIds = userThreads.reduce((acc, userThread) => {
+            return acc.concat(userThread.children)
+        }, [])
+
+        const replies = await Thread
+            .find({
+                _id: { $in: childThreadIds },
+                author: { $ne: userId }
+            })
+            .populate({
+                path: 'author',
+                model: User,
+                select: 'name image _id'
+            })
+
+        return replies
+
+    } catch (error: any) {
+        throw new Error(error.message)
+    }
+}
+
 export async function fetchUsers({
     userId,
     searchString = "",
